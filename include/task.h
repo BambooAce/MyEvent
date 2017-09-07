@@ -1,17 +1,17 @@
 #include <pthread.h>
+
 typedef void (*ExecuteTask)(void **arg);
 
 typedef struct taskpackage{
     void * arg;
     ExecuteTask et;
-    int status;
+    int status; //0 in list no call, 1 get from list, 2 running
 }TASKPACKAGE;
 
 typedef struct TASKNODE{
-    int priority;
     TASKPACKAGE *tg;
-    TASKNODE *pretask;
-    TASKNODE *next;
+    struct TASKNODE *pretask;
+    struct TASKNODE *next;
 }TaskNode;
 
 typedef struct {
@@ -21,8 +21,8 @@ typedef struct {
 }TASKLIST;
 
 int initTaskList(TASKLIST *tl);
-TASKPACKAGE * getATask(TASKLIST *tl);
-int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize, int priority);
-int deleteTask(TASKLIST *tl, ExecuteTask _tg);
-int clearTaskList(TASKLIST *tl);
+int getATask(TASKLIST *tl, TASKPACKAGE *tpkg);
+int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize);
+void deleteTask(TASKLIST *tl, ExecuteTask _tg);
+void clearTaskList(TASKLIST *tl);
 int getTaskNum(TASKLIST * tl);
