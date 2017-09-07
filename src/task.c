@@ -1,7 +1,14 @@
 #include "task.h"
-#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+/**
+ * @brief initTaskList
+ * @param tl
+ * @return
+ * Initial task list and lock
+ */
 int initTaskList(TASKLIST *tl)
 {
     tl->header = NULL;
@@ -10,38 +17,64 @@ int initTaskList(TASKLIST *tl)
     return 1;
 }
 
-TASKPACKAGE *getATask(TASKLIST *tl)
+/**
+ * @brief getATask
+ * @param tl
+ * @param tpkg
+ * @return
+ * get a task from tasklist, put into tpkg, if success return 1, else return 0.
+ */
+int getATask(TASKLIST *tl, TASKPACKAGE * tpkg)
 {
-    assert(tl);
-    if(tl->num)
-    {
-        TaskNode *tn = tl->header;
-        TaskNode *tnn = tn;
-        int i;
-        for(i = 0; i < tl->num; ++i)
+    if(tl){
+        pthread_mutex_lock(tl->mutex);
+        if(tl->num)
         {
-            tnn = tn->next;
-            tnn->priority ;
-            tn = tnn;
+            TaskNode *tn = tl->header;
+            if(tn)
+            {
+                tl->header = tn->next;
+                tpkg->arg = tn->tg->arg;
+                tpkg->et = tn->tg->et;
+                tpkg->status = 1;
+                free(tn);
+                tn = NULL;
+                pthread_mutex_unlock(tl->mutex);
+                return 1;
+            }
         }
+        pthread_mutex_unlock(tl->mutex);
     }
-    return NULL;
+    return 0;
 }
 
-int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize, int priority)
+/**
+ * @brief putATask
+ * @param tl
+ * @param runtask callback function
+ * @param arg argurement
+ * @param argsize size of argurement
+ * @return
+ * put a task into tasklist
+ */
+int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize)
 {
     assert(tl);
     TASKPACKAGE * tp = (TASKPACKAGE *)malloc(sizeof(TASKPACKAGE));
     if(tp && arg){
         memcpy(tp->arg, arg, argsize);
-    }else
+    }
+    else if(tp && !arg){
         tp->arg = NULL;
+    }else
+    {
+        return 0;
+    }
     tp->et = runtask;
     tp->status = 0;
     TaskNode *atask = (TaskNode *)malloc(sizeof(TaskNode));
     if(atask){
         atask->tg = tp;
-        atask->priority = priority > 0 ? priority : 1;
         pthread_mutex_lock(tl->mutex);
         if(tl->header){
             tl->header->pretask = atask;
@@ -59,8 +92,13 @@ int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize,
     return 0;
 }
 
-
-int clearTaskList(TASKLIST *tl)
+/**
+ * @brief clearTaskList
+ * @param tl
+ * @return
+ * clean tasklist
+ */
+void clearTaskList(TASKLIST *tl)
 {
     assert(tl);
     pthread_mutex_lock(tl->mutex);
@@ -88,10 +126,16 @@ int clearTaskList(TASKLIST *tl)
     tl->header = NULL;
     tl->num = 0;
     pthread_mutex_unlock(tl->mutex);
-    return 1;
 }
 
-int deleteTask(TASKLIST *tl, ExecuteTask _tg)
+/**
+ * @brief deleteTask
+ * @param tl
+ * @param _tg
+ * @return
+ * delete all tg tasks
+ */
+void deleteTask(TASKLIST *tl, ExecuteTask _tg)
 {
     assert(tl);
     if(tl->num)
@@ -130,10 +174,18 @@ int deleteTask(TASKLIST *tl, ExecuteTask _tg)
             tn = tnn;
         }
     }
-    return 1;
 }
 
+/**
+ * @brief getTaskNum
+ * @param tl
+ * @return
+ * get task number
+ */
 int getTaskNum(TASKLIST *tl)
 {
-    return tl->num;
+    pthread_mutex_lock(tl->mutex);
+    int num = tl->num;
+    pthread_mutex_unlock(tl->mutex);
+    return num;
 }
