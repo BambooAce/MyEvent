@@ -13,7 +13,7 @@ int initTaskList(TASKLIST *tl)
 {
     tl->header = NULL;
     tl->num = 0;
-    pthread_mutex_init(tl->mutex, NULL);
+    pthread_mutex_init(&tl->mutex, NULL);
     return 1;
 }
 
@@ -26,25 +26,32 @@ int initTaskList(TASKLIST *tl)
  */
 int getATask(TASKLIST *tl, TASKPACKAGE * tpkg)
 {
+    pthread_mutex_lock(&tl->mutex);
     if(tl){
-        pthread_mutex_lock(tl->mutex);
         if(tl->num)
         {
             TaskNode *tn = tl->header;
             if(tn)
             {
-                tl->header = tn->next;
-                tpkg->arg = tn->tg->arg;
+
+                memcpy(tpkg->arg, tn->tg->arg, tn->tg->argsize);
                 tpkg->et = tn->tg->et;
+                tpkg->argsize = tn->tg->argsize;
                 tpkg->status = 1;
+                tl->num--;
+                fprintf(stderr, ">>>get a task\n");
+                tl->header = tn->next;
+                if(tn->next){
+                    tn->next->pretask = NULL;
+                }
                 free(tn);
                 tn = NULL;
-                pthread_mutex_unlock(tl->mutex);
+                pthread_mutex_unlock(&tl->mutex);
                 return 1;
             }
         }
-        pthread_mutex_unlock(tl->mutex);
     }
+    pthread_mutex_unlock(&tl->mutex);
     return 0;
 }
 
@@ -59,10 +66,14 @@ int getATask(TASKLIST *tl, TASKPACKAGE * tpkg)
  */
 int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize)
 {
-    assert(tl);
+    if(!tl)
+        return 0;
     TASKPACKAGE * tp = (TASKPACKAGE *)malloc(sizeof(TASKPACKAGE));
+    memset(tp, 0, sizeof(TASKPACKAGE));
     if(tp && arg){
+        tp->arg = malloc(argsize);
         memcpy(tp->arg, arg, argsize);
+        tp->argsize = argsize;
     }
     else if(tp && !arg){
         tp->arg = NULL;
@@ -75,18 +86,20 @@ int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize)
     TaskNode *atask = (TaskNode *)malloc(sizeof(TaskNode));
     if(atask){
         atask->tg = tp;
-        pthread_mutex_lock(tl->mutex);
+        pthread_mutex_lock(&tl->mutex);
         if(tl->header){
             tl->header->pretask = atask;
             atask->next = tl->header;
             atask->pretask = NULL;
+            tl->header = atask;
         }else{
             tl->header = atask;
             atask->pretask = NULL;
             atask->next = NULL;
         }
+        fprintf(stderr, ">>>>put a task\n");
         tl->num++;
-        pthread_mutex_unlock(tl->mutex);
+        pthread_mutex_unlock(&tl->mutex);
         return 1;
     }
     return 0;
@@ -101,7 +114,7 @@ int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize)
 void clearTaskList(TASKLIST *tl)
 {
     assert(tl);
-    pthread_mutex_lock(tl->mutex);
+    pthread_mutex_lock(&tl->mutex);
     if(tl->num)
     {
         TaskNode * tn = tl->header;
@@ -125,7 +138,8 @@ void clearTaskList(TASKLIST *tl)
     }
     tl->header = NULL;
     tl->num = 0;
-    pthread_mutex_unlock(tl->mutex);
+    pthread_mutex_unlock(&tl->mutex);
+    pthread_mutex_destroy(&tl->mutex);
 }
 
 /**
@@ -151,6 +165,9 @@ void deleteTask(TASKLIST *tl, ExecuteTask _tg)
                     if(!tn->pretask)
                     {
                         tl->header = tn->next;
+                        if(tn->next){
+                            tn->next->pretask = NULL;
+                        }
                     }else{
                         tn->pretask->next = tn->next;
                         tn->next->pretask = tn->pretask;
@@ -182,10 +199,57 @@ void deleteTask(TASKLIST *tl, ExecuteTask _tg)
  * @return
  * get task number
  */
-int getTaskNum(TASKLIST *tl)
+void getRunningTaskNum(TASKLIST * tl, int *tasknum)
 {
-    pthread_mutex_lock(tl->mutex);
-    int num = tl->num;
-    pthread_mutex_unlock(tl->mutex);
-    return num;
+    pthread_mutex_lock(&tl->mutex);
+    if(tl){
+        TaskNode * temp = tl->header;
+        while(temp)
+        {
+            if(temp->tg->status)
+            {
+                (*tasknum)++;
+            }
+            temp = temp->next;
+        }
+    }
+    pthread_mutex_unlock(&tl->mutex);
 }
+
+
+
+#include "task.h"
+#include "pthreadPool.h"
+#include <stdio.h>
+
+void runtask(void *arg);
+void runtask2(void *arg);
+
+int main()
+{
+    int temp = 100;
+    int temp2 = 10;
+    int temp3 = 1;
+    TASKLIST tl;
+    initTaskList(&tl);
+
+    putATask(&tl, runtask, &temp, sizeof(temp));
+    putATask(&tl, runtask, &temp2, sizeof(temp2));
+    putATask(&tl, runtask, &temp3, sizeof(temp3));
+    sleep(2);
+        initThreadPool(4, &tl, 0);
+    joinAllThreads();
+    return 0;
+}
+
+void runtask(void *arg)
+{
+    int *a = (int *)arg;
+    while(1)
+    {
+        printf(">>>%d\n", (*a)++);
+        sleep(1);
+    }
+}
+
+
