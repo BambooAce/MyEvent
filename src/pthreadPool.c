@@ -1,5 +1,8 @@
 #include "task.h"
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #define MAX 300
 pthread_t Threads[MAX];
 pthread_attr_t attr;
@@ -16,11 +19,11 @@ static void * run(void *arg)
     TASKLIST *tl = (TASKLIST *)arg;
     if(tl)
     {
-        TASKPACKAGE tkg;
+        TASKPACKAGE *tkg = NULL;
         while(1){
             if(getATask(tl, &tkg))
             {
-                tkg.et(tkg.arg);
+                tkg->et(tkg->arg);
             }else{
                 usleep(50000);
             }

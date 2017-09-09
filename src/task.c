@@ -24,7 +24,7 @@ int initTaskList(TASKLIST *tl)
  * @return
  * get a task from tasklist, put into tpkg, if success return 1, else return 0.
  */
-int getATask(TASKLIST *tl, TASKPACKAGE * tpkg)
+int getATask(TASKLIST *tl, TASKPACKAGE ** tpkg)
 {
     pthread_mutex_lock(&tl->mutex);
     if(tl){
@@ -33,16 +33,30 @@ int getATask(TASKLIST *tl, TASKPACKAGE * tpkg)
             TaskNode *tn = tl->header;
             if(tn)
             {
+                fprintf(stderr, ">>> a task\n");
+                *tpkg = (TASKPACKAGE *)malloc(sizeof(TASKPACKAGE));
+                if(*tpkg)
+                {
+                    (*tpkg)->arg = malloc((*tpkg)->argsize);
 
-                memcpy(tpkg->arg, tn->tg->arg, tn->tg->argsize);
-                tpkg->et = tn->tg->et;
-                tpkg->argsize = tn->tg->argsize;
-                tpkg->status = 1;
+                }
+                if(!(*tpkg) || !((*tpkg)->arg))
+                {
+                    return 0;
+                }
+                memcpy((*tpkg)->arg, tn->tg->arg, tn->tg->argsize);
+                fprintf(stderr, ">>>get a task\n");
+                (*tpkg)->et = tn->tg->et;
+                (*tpkg)->argsize = tn->tg->argsize;
+                (*tpkg)->status = 1;
                 tl->num--;
                 fprintf(stderr, ">>>get a task\n");
-                tl->header = tn->next;
                 if(tn->next){
+                    tl->header = tn->next;
                     tn->next->pretask = NULL;
+                    tn->next = NULL;
+                }else{
+                    tl->header = NULL;
                 }
                 free(tn);
                 tn = NULL;
@@ -218,38 +232,6 @@ void getRunningTaskNum(TASKLIST * tl, int *tasknum)
 
 
 
-#include "task.h"
-#include "pthreadPool.h"
-#include <stdio.h>
 
-void runtask(void *arg);
-void runtask2(void *arg);
-
-int main()
-{
-    int temp = 100;
-    int temp2 = 10;
-    int temp3 = 1;
-    TASKLIST tl;
-    initTaskList(&tl);
-
-    putATask(&tl, runtask, &temp, sizeof(temp));
-    putATask(&tl, runtask, &temp2, sizeof(temp2));
-    putATask(&tl, runtask, &temp3, sizeof(temp3));
-    sleep(2);
-        initThreadPool(4, &tl, 0);
-    joinAllThreads();
-    return 0;
-}
-
-void runtask(void *arg)
-{
-    int *a = (int *)arg;
-    while(1)
-    {
-        printf(">>>%d\n", (*a)++);
-        sleep(1);
-    }
-}
 
 
