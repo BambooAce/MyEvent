@@ -24,7 +24,7 @@ typedef struct {
 }TASKLIST;
 
 int initTaskList(TASKLIST *tl);
-int getATask(TASKLIST *tl, TASKPACKAGE *tpkg);
+int getATask(TASKLIST *tl, TASKPACKAGE **tpkg);
 int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize);
 void deleteTask(TASKLIST *tl, ExecuteTask _tg);
 void clearTaskList(TASKLIST *tl);
