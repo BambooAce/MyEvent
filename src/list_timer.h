@@ -9,9 +9,6 @@
 #ifndef LIST_TIMER_H
 #define LIST_TIMER_H
 #include <time.h>
-#ifdef THREADS
-#include <pthread.h>
-#endif
 enum {CONNECTED, READ, WROTE, NORMAL};
 struct util_time;
 typedef struct ClientData{
@@ -51,9 +48,6 @@ typedef struct list_timer
     struct TimerOP timer_op;
 	UTIL_TIME * head;
 	UTIL_TIME * tail;
-#ifdef THREADS
-    pthread_mutex_t mutex;
-#endif
 }LIST_TIMER;
 
 //timer list operator, all function only handle list and free timer, not free clientdata
