@@ -18,9 +18,6 @@ void init_List_Timer(LIST_TIMER *lt)
     lt->timer_op._tick = tick;
     lt->head = NULL;
     lt->tail = NULL;
-#ifdef THREADS
-    pthread_mutex_init(&(lt->mutex), NULL);
-#endif
 }
 
 /**
@@ -32,9 +29,6 @@ void init_List_Timer(LIST_TIMER *lt)
  */
 int add_timer(LIST_TIMER * lt, UTIL_TIME * ut)
 {
-#ifdef THREADS
-    pthread_mutex_lock(&(lt->mutex));
-#endif
     if (lt && ut)
     {
         if (!lt->head && !lt->tail)
@@ -43,9 +37,6 @@ int add_timer(LIST_TIMER * lt, UTIL_TIME * ut)
             lt->tail = ut;
             ut->prev = NULL;
             ut->next = NULL;
-#ifdef THREADS
-            pthread_mutex_unlock(&(lt->mutex));
-#endif
             return 1;
         }
         else if (lt->head && lt->tail)
@@ -62,9 +53,6 @@ int add_timer(LIST_TIMER * lt, UTIL_TIME * ut)
                         temp->prev = ut;
                         lt->head = ut;
                         ut->prev = NULL;
-#ifdef THREADS
-                        pthread_mutex_unlock(&(lt->mutex));
-#endif
                         return 1;
                     }
                 }
@@ -75,19 +63,10 @@ int add_timer(LIST_TIMER * lt, UTIL_TIME * ut)
             ut->prev = tempbak;
             ut->next = NULL;
             lt->tail = ut;
-#ifdef THREADS
-            pthread_mutex_unlock(&(lt->mutex));
-#endif
             return 1;
         }
-#ifdef THREADS
-        pthread_mutex_unlock(&(lt->mutex));
-#endif
         return 0;
     }
-#ifdef THREADS
-    pthread_mutex_unlock(&(lt->mutex));
-#endif
     return 0;
 }
 
@@ -100,9 +79,6 @@ int add_timer(LIST_TIMER * lt, UTIL_TIME * ut)
  */
 int del_timer(LIST_TIMER * lt, UTIL_TIME **ut)
 {
-#ifdef THREADS
-    pthread_mutex_lock(&(lt->mutex));
-#endif
     if(lt && ut && *ut)
     {
         if(lt->head)
@@ -139,18 +115,12 @@ int del_timer(LIST_TIMER * lt, UTIL_TIME **ut)
                     free(*ut);
                     *ut = NULL;
                     ut = NULL;
-#ifdef THREADS
-                    pthread_mutex_unlock(&(lt->mutex));
-#endif
                     return 1;
                 }
                 temp = temp->next;
             }
         }
     }
-#ifdef THREADS
-    pthread_mutex_unlock(&(lt->mutex));
-#endif
     return 0;
 }
 
@@ -164,21 +134,12 @@ int del_timer(LIST_TIMER * lt, UTIL_TIME **ut)
  */
 int adjust_timer(LIST_TIMER * lt, UTIL_TIME * ut, time_t _time)
 {
-#ifdef THREADS
-    pthread_mutex_lock(&(lt->mutex));
-#endif
     if(!lt || !ut){
-#ifdef THREADS
-        pthread_mutex_unlock(&(lt->mutex));
-#endif
         return 0;
     }
     ut->out_time = time(NULL) + _time;
     if(!ut->prev && !ut->next)
     {
-#ifdef THREADS
-        pthread_mutex_unlock(&(lt->mutex));
-#endif
         return 1;
     }else if (ut->prev && !ut->next) {
         ut->prev->next = NULL;
@@ -196,14 +157,8 @@ int adjust_timer(LIST_TIMER * lt, UTIL_TIME * ut, time_t _time)
     }
     if(add_timer(lt, ut))
     {
-#ifdef THREADS
-        pthread_mutex_unlock(&(lt->mutex));
-#endif
         return 1;
     }
-#ifdef THREADS
-    pthread_mutex_unlock(&(lt->mutex));
-#endif
     return 0;
 }
 
@@ -214,13 +169,8 @@ int adjust_timer(LIST_TIMER * lt, UTIL_TIME * ut, time_t _time)
  */
 void tick(LIST_TIMER * lt)
 {
-#ifdef THREADS
-    pthread_mutex_lock(&(lt->mutex));
-#endif
     if(lt){
         time_t now = time(NULL);
-        int unlock = 1;
-        int small = 1;
         UTIL_TIME *temp = lt->head;
         UTIL_TIME *tempbak = temp;
         while(temp)
@@ -232,9 +182,6 @@ void tick(LIST_TIMER * lt)
             {
                 small = 0;
                 int res = tempbak->timeout_callback(tempbak->cdata);
-#ifdef THREADS
-                pthread_mutex_unlock(&(lt->mutex));
-#endif
                 if(!res)
                     del_timer(lt, &tempbak);
                 else{
@@ -242,22 +189,8 @@ void tick(LIST_TIMER * lt)
                 }
             }
         }
-        if(unlock){
-#ifdef THREADS
-        pthread_mutex_unlock(&(lt->mutex));
-#endif
-        }else{
-            if(small){
-#ifdef THREADS
-                pthread_mutex_unlock(&(lt->mutex));
-#endif
-            }
-        }
         return;
     }
-#ifdef THREADS
-    pthread_mutex_unlock(&(lt->mutex));
-#endif
     return;
 }
 
@@ -268,13 +201,7 @@ void tick(LIST_TIMER * lt)
  */
 void destroy_list_Timer(LIST_TIMER *lt)
 {
-#ifdef THREADS
-    pthread_mutex_lock(&(lt->mutex));
-#endif
     if(!lt){
-#ifdef THREADS
-        pthread_mutex_unlock(&(lt->mutex));
-#endif
         return;
     }
     UTIL_TIME * temp = lt->head;
@@ -290,10 +217,6 @@ void destroy_list_Timer(LIST_TIMER *lt)
     }
     lt->head = NULL;
     lt->tail = NULL;
-#ifdef THREADS
-    pthread_mutex_unlock(&(lt->mutex));
-    pthread_mutex_destroy(&(lt->mutex));
-#endif
 }
 
 LIST_TIMER lt;
@@ -359,9 +282,3 @@ int main()
     }
     return 0;
 }
-
-
-
-
-
-
