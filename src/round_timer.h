@@ -5,20 +5,8 @@
 #include <pthread.h>
 #endif
 
-enum {CONNECTED, READ, WROTE, NORMAL};
-struct aw_timer;
-typedef struct ClientData{
-    int fd;
-    char ipaddr[4];
-    char * data;
-    //This client monitor status
-    int flags;
-    //Timer point, if ut is null that mean not included into timer.
-    struct aw_timer * at;
-}CLIENTDATA;
-
 typedef struct aw_timer{
-    CLIENTDATA *data;
+    void *data;
     struct aw_timer * prev;
     struct aw_timer * next;
     time_t expect;
@@ -26,7 +14,11 @@ typedef struct aw_timer{
     int slotnumber;
     //timer loop cercle number
     int loopcercle;
-    int (*timeout_callback)(CLIENTDATA * data);
+    //weather persist
+    int persist;
+    //if return 0 : mean don`t delete timer
+    //return 1 : delete timer.
+    void (*timeout_callback)(void * data);
 }AW_TIMER;
 
 #define N 60
