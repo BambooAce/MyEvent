@@ -9,27 +9,17 @@
 #ifndef LIST_TIMER_H
 #define LIST_TIMER_H
 #include <time.h>
-enum {CONNECTED, READ, WROTE, NORMAL};
-struct util_time;
-typedef struct ClientData{
-	int fd;
-	char ipaddr[4];
-	char * data;
-    //This client monitor status
-    int flags;
-    //Timer point, if ut is null that mean not included into timer list.
-    struct util_time * ut;
-}CLIENTDATA;
 
 typedef struct util_time{
 	struct  util_time * prev;
 	struct util_time * next;
     //Client data point
-	CLIENTDATA * cdata;
+    void * cdata;
     //timeout value
-	time_t out_time;
+    time_t out_time;
+    int persist;
     //if timeout callback
-    int (*timeout_callback)(CLIENTDATA * data);
+    void (*timeout_callback)(void * data);
 }UTIL_TIME;
 
 struct list_timer;
