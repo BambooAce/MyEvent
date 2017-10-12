@@ -175,17 +175,16 @@ void tick(LIST_TIMER * lt)
         UTIL_TIME *tempbak = temp;
         while(temp)
         {
-            unlock = 0;
             tempbak = temp;
             temp = temp->next;
             if(tempbak->out_time <= now)
             {
-                small = 0;
-                int res = tempbak->timeout_callback(tempbak->cdata);
-                if(!res)
+                tempbak->timeout_callback(tempbak->cdata);
+                if(!(tempbak->persist))
                     del_timer(lt, &tempbak);
                 else{
-                    adjust_timer(lt, tempbak, 10);
+                    //persist time
+                    adjust_timer(lt, tempbak, tempbak->persist);
                 }
             }
         }
@@ -219,66 +218,4 @@ void destroy_list_Timer(LIST_TIMER *lt)
     lt->tail = NULL;
 }
 
-LIST_TIMER lt;
 
-void dotick(int arg)
-{
-    fprintf(stderr, ">>>>>><<<<<<\n");
-    arg = 0;
-    tick(&lt);
-    alarm(1);
-}
-
-int doit(CLIENTDATA * data)
-{
-    if(data){
-        switch (data->flags) {
-        case CONNECTED:
-            fprintf(stderr, "don`t delete\n");
-            return 1;
-        case READ:
-            fprintf(stderr, "delete \n");
-            return 0;
-        case WROTE:
-            break;
-        case NORMAL:
-            break;
-        default:
-            break;
-        }
-    }
-    return 0;
-}
-
-int main()
-{
-    signal(SIGALRM, dotick);
-    init_List_Timer(&lt);
-    CLIENTDATA * cl1 = (CLIENTDATA *)malloc(sizeof(CLIENTDATA));
-    cl1->data = NULL;
-    cl1->fd = 23;
-    cl1->flags = CONNECTED;
-
-    CLIENTDATA * cl2 = (CLIENTDATA *)malloc(sizeof(CLIENTDATA));
-    cl2->data = NULL;
-    cl2->fd = 2324;
-    cl2->flags = READ;
-
-    UTIL_TIME *ut2 = (UTIL_TIME *)malloc(sizeof(UTIL_TIME));
-    ut2->timeout_callback = doit;
-    ut2->cdata = cl2;
-    ut2->out_time = time(NULL) + 2;
-
-    UTIL_TIME *ut1 = (UTIL_TIME *)malloc(sizeof(UTIL_TIME));
-    ut1->timeout_callback = doit;
-    ut1->cdata = cl1;
-    ut1->out_time = time(NULL)+ 6;
-
-    add_timer(&lt, ut1);
-    add_timer(&lt, ut2);
-    alarm(1);
-    while(1){
-        sleep(80);
-    }
-    return 0;
-}
