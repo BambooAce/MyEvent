@@ -1,9 +1,6 @@
 #ifndef ROUND_TIMER_H
 #define ROUND_TIMER_H
 #include <time.h>
-#ifdef THREADS
-#include <pthread.h>
-#endif
 
 typedef struct aw_timer{
     void *data;
