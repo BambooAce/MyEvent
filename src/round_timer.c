@@ -1,11 +1,17 @@
-﻿#include <time.h>
+#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
 #include "round_timer.h"
-static WH_TIMERS wt;
+
+/**
+ * @brief insert_sort_timer
+ * @param aw_list
+ * @param at
+ * sort timer depend on loopcercle
+ */
 static void insert_sort_timer(AW_TIMER ** aw_list, AW_TIMER **at)
 {
     if(aw_list && at)
@@ -17,14 +23,12 @@ static void insert_sort_timer(AW_TIMER ** aw_list, AW_TIMER **at)
                 atr->prev = *at;
                 (*at)->prev = NULL;
                 *aw_list = *at;
-                //fprintf(stderr, "#######\n");
                 return;
             }
             else if(((*at)->loopcercle >= (atr->loopcercle)) && (!atr->next)) {
                 atr->next = *at;
                 (*at)->prev = atr;
                 (*at)->next = NULL;
-                fprintf(stderr, "^^^^^^^^\n");
                 return;
             }
             else if(((*at)->loopcercle <= (atr->loopcercle)) && atr->next && atr->prev){
@@ -32,7 +36,6 @@ static void insert_sort_timer(AW_TIMER ** aw_list, AW_TIMER **at)
                 (*at)->prev = atr->prev;
                 atr->prev->next = *at;
                 atr->prev = *at;
-                fprintf(stderr, "||||||||\n");
                 return;
             }
             atr = atr->next;
@@ -40,6 +43,13 @@ static void insert_sort_timer(AW_TIMER ** aw_list, AW_TIMER **at)
     }
 }
 
+/**
+ * @brief init_wh_timer
+ * @param wt
+ * @param timegap
+ * Initialize wheel timers, timegap mean seconds one step.
+ * If timegap < 0 , timegap = 1
+ */
 void init_wh_timer(WH_TIMERS * wt, int timegap)
 {
     if(wt){
@@ -52,17 +62,25 @@ void init_wh_timer(WH_TIMERS * wt, int timegap)
     }
 }
 
+/**
+ * @brief add_wh_timer
+ * @param wt
+ * @param at
+ * @return
+ * add a timer into wheel timers
+ */
 int add_wh_timer(WH_TIMERS *wt, AW_TIMER *at)
 {
     if(wt && at){
         if(at->expect){
+            //get timer loop cercles.
             at->loopcercle = (at->expect) / ((wt->timegap) * N);
+            //get timer slot number in wheel
             at->slotnumber = (wt->curslotpoint + ((at->expect) / (wt->timegap))) % N;
-            //fprintf(stderr, "timer slot number: %d\n", at->slotnumber);
             int index_t = at->slotnumber;
             if(wt->slot[index_t])
             {
-                //fprintf(stderr, ".................\n");
+                //If this slot is not empty, insert it sortable.
                 insert_sort_timer(&(wt->slot[index_t]), &at);
             }else{
                 wt->slot[index_t] = at;
@@ -73,6 +91,14 @@ int add_wh_timer(WH_TIMERS *wt, AW_TIMER *at)
     }
 }
 
+/**
+ * @brief del_wh_timer
+ * @param wt
+ * @param at
+ * @param remove
+ * @return
+ * delete a timer, and the remove flag mean weather free it or not.
+ */
 int del_wh_timer(WH_TIMERS *wt, AW_TIMER **at, int remove)
 {
     if(wt && at){
@@ -94,33 +120,43 @@ int del_wh_timer(WH_TIMERS *wt, AW_TIMER **at, int remove)
                 (*at)->prev = NULL;
                 (*at)->next = NULL;
             }
-//            if(!remove){
-//                free(*at);
-//                *at = NULL;
-//            }
+            if(remove){
+                free(*at);
+                *at = NULL;
+            }
         }
         return 0;
     }
     return 0;
 }
 
+/**
+ * @brief adjust_wh_timer
+ * @param wt
+ * @param at
+ * @return
+ * reset timer, fristly, will remove timer, then insert wheel again.
+ */
 int adjust_wh_timer(WH_TIMERS *wt, AW_TIMER *at)
 {
     if(wt && at)
     {
-        //at->expect *= 2;
         del_wh_timer(wt, &at, 0);
         add_wh_timer(wt, at);
     }
 }
 
+/**
+ * @brief wh_tick
+ * @param wt
+ * point remove step by step, if slot is not null， run timeout callback function.
+ * if loop cercle sum > 0, will skip it.
+ */
 void wh_tick(WH_TIMERS *wt)
 {
     if(wt)
     {
         wt->curslotpoint = (wt->curslotpoint + 1)%N;
-        //fprintf(stderr, "wheet current point <<<<%d\n", wt->curslotpoint);
-
         if(wt->slot[wt->curslotpoint])
         {
             AW_TIMER * at = wt->slot[wt->curslotpoint];
@@ -129,16 +165,12 @@ void wh_tick(WH_TIMERS *wt)
             {
                 attemp = at->next;
                 if(0 >= at->loopcercle){
-                    int res = at->timeout_callback(at->data);
-                    switch(res){
-                    case 0:
+                    at->timeout_callback(at->data);
+                    if(at->persist)
+                    {
                         adjust_wh_timer(wt, at);
-                        break;
-                    case 1:
+                    }else{
                         del_wh_timer(wt, &at, 1);
-                        break;
-                    default:
-                        break;
                     }
                 }
                 at = attemp;
@@ -148,6 +180,11 @@ void wh_tick(WH_TIMERS *wt)
     }
 }
 
+/**
+ * @brief destory_wh_timer
+ * @param wt
+ * free timer wheel.
+ */
 void destory_wh_timer(WH_TIMERS *wt)
 {
     int i;
@@ -169,42 +206,4 @@ void destory_wh_timer(WH_TIMERS *wt)
     }
 }
 
-int func(CLIENTDATA * idata)
-{
-    if(idata)
-    {
-        fprintf(stderr, "data is >>>>%d\n", idata->fd);
-    }
-    return 0;
-}
 
-void doit(int status)
-{
-    fprintf(stderr, "time coming\n");
-    wh_tick(&wt);
-}
-
-int main()
-{
-    signal(SIGALRM, doit);
-    init_wh_timer(&wt, 1);
-    CLIENTDATA dt, dt2;
-    dt2.fd = 111;
-    dt.fd = 234;
-    AW_TIMER at, at2;
-    at.data = &dt;
-    at.expect = 6;
-    at.timeout_callback = func;
-    at2.data = &dt2;
-    at2.expect = 4;
-    at2.timeout_callback = func;
-    add_wh_timer(&wt, &at);
-    add_wh_timer(&wt, &at2);
-    //adjust_wh_timer(&wt, &at);
-    //adjust_wh_timer(&wt, &at2);
-    alarm(1);
-    while(1){
-    sleep(300);
-    }
-    return 0;
-}
