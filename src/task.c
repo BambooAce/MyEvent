@@ -33,7 +33,6 @@ int getATask(TASKLIST *tl, TASKPACKAGE ** tpkg)
             TaskNode *tn = tl->header;
             if(tn)
             {
-                fprintf(stderr, ">>> a task\n");
                 *tpkg = (TASKPACKAGE *)malloc(sizeof(TASKPACKAGE));
                 if(*tpkg)
                 {
@@ -45,12 +44,10 @@ int getATask(TASKLIST *tl, TASKPACKAGE ** tpkg)
                     return 0;
                 }
                 memcpy((*tpkg)->arg, tn->tg->arg, tn->tg->argsize);
-                fprintf(stderr, ">>>get a task\n");
                 (*tpkg)->et = tn->tg->et;
                 (*tpkg)->argsize = tn->tg->argsize;
                 (*tpkg)->status = 1;
                 tl->num--;
-                fprintf(stderr, ">>>get a task\n");
                 if(tn->next){
                     tl->header = tn->next;
                     tn->next->pretask = NULL;
@@ -111,7 +108,6 @@ int putATask(TASKLIST *tl, ExecuteTask runtask, void *arg, unsigned int argsize)
             atask->pretask = NULL;
             atask->next = NULL;
         }
-        fprintf(stderr, ">>>>put a task\n");
         tl->num++;
         pthread_mutex_unlock(&tl->mutex);
         return 1;

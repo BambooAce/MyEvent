@@ -83,11 +83,7 @@ int del_timer(LIST_TIMER * lt, UTIL_TIME **ut)
     {
         if(lt->head)
         {
-            UTIL_TIME *temp = lt->head;
-            while(temp)
-            {
-                if(temp == *ut)
-                {
+                    UTIL_TIME *temp = *ut;
                     if((temp == lt->head) && (temp != lt->tail))
                     {
                         lt->head = temp->next;
@@ -116,9 +112,6 @@ int del_timer(LIST_TIMER * lt, UTIL_TIME **ut)
                     *ut = NULL;
                     ut = NULL;
                     return 1;
-                }
-                temp = temp->next;
-            }
         }
     }
     return 0;
@@ -140,22 +133,23 @@ int adjust_timer(LIST_TIMER * lt, UTIL_TIME * ut, time_t _time)
     ut->out_time = time(NULL) + _time;
     if(!ut->prev && !ut->next)
     {
-        return 1;
+        return 1;   //only have single Node
     }else if (ut->prev && !ut->next) {
-        ut->prev->next = NULL;
+        ut->prev->next = NULL;   //if ut is tail Node, remove it.
         ut->prev = NULL;
     }else if (!ut->prev && ut->next) {
-        lt->head = ut->next;
+        lt->head = ut->next;    //if ut is head Node
         ut->next->prev = NULL;
         ut->next = NULL;
         ut->prev = NULL;
     }else{
-        ut->next->prev = ut->prev;
+        ut->next->prev = ut->prev; //ut is middle
         ut->prev->next = ut->next;
         ut->next = NULL;
         ut->prev = NULL;
     }
-    if(add_timer(lt, ut))
+    //  Can be optimized , insert after this Node.
+    if(add_timer(lt, ut))          //reinsert it
     {
         return 1;
     }
@@ -186,6 +180,8 @@ void tick(LIST_TIMER * lt)
                     //persist time
                     adjust_timer(lt, tempbak, tempbak->persist);
                 }
+            }else{
+                break;
             }
         }
         return;

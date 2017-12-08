@@ -17,14 +17,6 @@ typedef struct ClientData{
 }CLIENTDATA;
 LIST_TIMER lt;
 
-void dotick(int arg)
-{
-    fprintf(stderr, ">>>>>><<<<<<\n");
-    arg = 0;
-    tick(&lt);
-    alarm(1);
-}
-
 void doit(void * mydata)
 {
     CLIENTDATA * data = (CLIENTDATA *)mydata;
@@ -48,7 +40,6 @@ void doit(void * mydata)
 
 int main()
 {
-    signal(SIGALRM, dotick);
     init_List_Timer(&lt);
     CLIENTDATA * cl1 = (CLIENTDATA *)malloc(sizeof(CLIENTDATA));
     cl1->data = NULL;
@@ -64,7 +55,7 @@ int main()
     ut2->timeout_callback = doit;
     ut2->cdata = cl2;
     ut2->out_time = time(NULL) + 2;
-    ut2->persist = 6;
+    ut2->persist = 0;
 
     UTIL_TIME *ut1 = (UTIL_TIME *)malloc(sizeof(UTIL_TIME));
     ut1->timeout_callback = doit;
@@ -74,9 +65,9 @@ int main()
 
     add_timer(&lt, ut1);
     add_timer(&lt, ut2);
-    alarm(1);
     while(1){
-        sleep(80);
+        tick(&lt);
+        usleep(500);
     }
     return 0;
 }
