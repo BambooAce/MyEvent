@@ -2,67 +2,69 @@
 #include <stdio.h>
 #include <string.h>
 #include "heap_time.h"
-static void swap(Timer *t1, Timer *t2)
+
+static void flow_up(HeapTimer *ht, Timer *_timer)
 {
-	Timer temp;
-	if (t1 && t2)
+	if (ht && _timer)
 	{
-		temp.timeout = t1->timeout;
-		temp.data = t1->data;
-		t1->timeout = t2->timeout;
-		t1->data = t2->data;
-		t2->timeout = temp.timeout;
-		t2->data = temp.data;
-	}
-}
-static void flow_up(HeapTimer *ht)
-{
-	if (ht)
-	{
-		if (ht->size <= 1)
+		if (ht->size == 0)
 		{
+			return;
+		}
+		else if (ht->size == 1)
+		{
+			memcpy(&(ht->timer[ht->size]), _timer, sizeof(Timer));
+			_timer = NULL;
 			return;
 		}
 		int temp = ht->size;
 		while(temp)
 		{
-			if (ht->timer[temp/2].timeout > ht->timer[temp].timeout)
+			if (ht->timer[temp/2].timeout > (_timer->timeout))
 			{
-				swap(&(ht->timer[temp/2]) , &(ht->timer[temp]));
+				ht->timer[temp].timeout = ht->timer[temp/2].timeout;
+				ht->timer[temp].data = ht->timer[temp/2].data;
+				ht->timer[temp].persist = ht->timer[temp/2].persist;
+				ht->timer[temp].timegap = ht->timer[temp/2].timegap;
 			}else{
 				break;
 			}
 			temp = temp/2;
 		}
+		memcpy(&(ht->timer[temp]), _timer, sizeof(Timer));
+		_timer = NULL;
 	}
 }
 
 static void flow_down(HeapTimer *ht)
 {
-	if (ht)
+	unsigned int start = 1;
+	unsigned int end = ht->size;
+	unsigned int current = start;
+	unsigned int l = 2*current;
+	while(l <= end)
 	{
-		if (ht->size <= 1)
+		if (l < end && (ht->timer[l+1].timeout < ht->timer[l].timeout))
 		{
-			return;
+			l++;
 		}
-		int temp = 1;
-		while(temp)
+		if (ht->timer[end].timeout < ht->timer[l].timeout)
 		{
-			if ( ht->timer[2*temp].timeout < ht->timer[2*temp + 1].timeout)
-			{
-				swap(&(ht->timer[temp]), &(ht->timer[2*temp]));
-				temp = 2*temp;
-			}
-			else{
-				swap(&(ht->timer[temp]), &(ht->timer[2*temp + 1]));
-				temp = 2*temp + 1;
-			}
-			if (temp >= ( (ht->size - 1)/2))
-			{
-				break;
-			}
+			break;
+		}
+		else{
+			ht->timer[current].timeout = ht->timer[l].timeout;
+			ht->timer[current].data = ht->timer[l].data;
+			ht->timer[current].persist = ht->timer[l].persist;
+			ht->timer[current].timegap = ht->timer[l].timegap;
+			current = l;
+			l = 2*current;
 		}
 	}
+	ht->timer[current].timeout = ht->timer[end].timeout;
+	ht->timer[current].data = ht->timer[end].data;
+	ht->timer[current].persist = ht->timer[end].persist;
+	ht->timer[current].timegap = ht->timer[end].timegap;
 }
 
 HeapTimer * initHeapTimer(size_t s)
@@ -81,6 +83,7 @@ HeapTimer * initHeapTimer(size_t s)
 	ht->timer = (Timer *)malloc(sizeof(Timer) * (s+1));
 	if (ht->timer)
 	{
+		memset(ht->timer, 0, sizeof(Timer)*(s+1));
 		return ht;
 	}
 	return NULL;
@@ -104,65 +107,71 @@ void min_heap_push(HeapTimer * ht, Timer * _timer)
 			}
 		}
 		(ht->size)++;
-		memcpy(&(ht->timer[ht->size]), _timer, sizeof(Timer));
-		_timer = NULL;
-		flow_up(ht);
+		flow_up(ht, _timer);
 	}
 }
 
 void min_heap_pop(HeapTimer * ht, Timer * _timer)
 {
-	if (_timer && ht && ht->size)
+	if ( ht && ht->size)
 	{
 		memset(_timer, 0, sizeof(Timer));
 		memcpy(_timer, &(ht->timer[1]), sizeof(Timer));
 		ht->timer[1].timeout = ht->timer[ht->size].timeout;
 		ht->timer[1].data = ht->timer[ht->size].data;
+		ht->timer[1].persist = ht->timer[ht->size].persist;
+		ht->timer[1].timegap = ht->timer[ht->size].timegap;
+		if (ht->size > 1)
+		{
+			flow_down(ht);
+		}
 		ht->timer[ht->size].timeout = 0;
 		ht->timer[ht->size].data = NULL;
+		ht->timer[ht->size].persist = 0;
+		ht->timer[ht->size].timegap = 0;
 		(ht->size)--;
-		flow_down(ht);
 	}
 }
 
-int check_have_timeout(HeapTimer *ht, time_t now)
+int check_had_timeout(HeapTimer *ht, time_t now)
 {
 	if (ht)
 	{
-		if (ht->size > 0)
+		if (ht->size > (size_t)0)
 		{
-			return (ht->timer[1]).timeout > now;
+			return (ht->timer[1]).timeout < now;
 		}
 	}
-	return -1;
+	return 0;
 }
-
 
 int main()
 {
-	HeapTimer * temp = initHeapTimer(100);
-	Timer a = {11, NULL};
-	Timer b = {34, NULL};
-	Timer c = {22, NULL};
-	Timer d = {3, NULL};
-	Timer e = {33, NULL};
-	Timer f = {333, NULL};
-	Timer g = {10, NULL};
-	min_heap_push(temp, &a);
-	min_heap_push(temp, &b);
-	min_heap_push(temp, &c);
-	min_heap_push(temp, &d);
-	min_heap_push(temp, &e);
-	min_heap_push(temp, &f);
-	min_heap_push(temp, &g);
-	int i;
-	for ( i = 0; i < 10; ++i)
+	HeapTimer *timer = initHeapTimer(50);
+	Timer t1;
+	t1.timegap = 3;
+	t1.timeout = time(NULL) + t1.timegap;
+	t1.persist = 1;
+	Timer t2;
+	t2.timegap = 6;
+	t2.timeout = time(NULL) + 6;
+	t2.persist = 0;
+	min_heap_push(timer, &t1);
+	min_heap_push(timer, &t2);
+	while(1)
 	{
-		Timer bb;
-		min_heap_pop(temp, &bb);
-		printf("%ld  ", bb.timeout);
+		if (check_had_timeout(timer, time(NULL)))
+		{
+			Timer temp;
+			min_heap_pop(timer, &temp);
+			if (temp.persist)
+			{
+				temp.timeout = time(NULL) + temp.timegap;
+				min_heap_push(timer, &temp);
+			}
+			printf("timeout  %u\n", timer->size);
+		}
+		usleep(100);
 	}
-	printf("\n");
 	return 0;
-	
 }

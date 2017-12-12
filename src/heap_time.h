@@ -1,7 +1,9 @@
 #include <time.h>
 typedef struct 
 {
+	int persist;
 	time_t timeout;
+	time_t timegap;
 	void * data;
 }Timer;
 typedef struct 
@@ -14,4 +16,4 @@ typedef struct
 HeapTimer * initHeapTimer(size_t s);
 void min_heap_push(HeapTimer * ht, Timer * _timer);
 void min_heap_pop(HeapTimer * ht, Timer * _timer);
-int check_have_timeout(HeapTimer *ht, time_t now);
+int check_had_timeout(HeapTimer *ht, time_t now);
