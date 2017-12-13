@@ -149,7 +149,7 @@ int adjust_wh_timer(WH_TIMERS *wt, AW_TIMER *at)
 /**
  * @brief wh_tick
  * @param wt
- * point remove step by step, if slot is not null， run timeout callback function.
+ * point move step by step, if slot is not null， run timeout callback function.
  * if loop cercle sum > 0, will skip it.
  */
 void wh_tick(WH_TIMERS *wt)
@@ -172,6 +172,9 @@ void wh_tick(WH_TIMERS *wt)
                     }else{
                         del_wh_timer(wt, &at, 1);
                     }
+                }else{
+                    (at->loopcercle)--;
+                    break;
                 }
                 at = attemp;
             }
