@@ -14,7 +14,7 @@
 #include <errno.h>
 #define MAXCLIENT 50000
 #define SIZE 256
-const char * hb = "HeartBeat";
+const char * hb = "HEARTBEAT";
 static void setnonblock(int lisfd)
 {
     int flags = fcntl(lisfd, F_GETFL);
@@ -98,7 +98,7 @@ void loop(struct BaseEvent *base,int lisfd)
                         base->cli_map[clifd].fd = clifd;
                         base->cli_map[clifd].idle = now;
                         base->cli_map[clifd].times = 0;
-                        base->cli_map[clifd].interval= 10;
+                        base->cli_map[clifd].interval= 20;
                         base->cli_map[clifd].flags = CONNECTED;
                         (base->cliNum)++;
                     }
@@ -123,6 +123,7 @@ void loop(struct BaseEvent *base,int lisfd)
                             write(events[i].data.fd, buff, rd);
                         }
                         base->cli_map[events[i].data.fd].idle = cache;
+						base->cli_map[events[i].data.fd].times = 0;
                         memset(buff, 0, SIZE);
                     }
                     if (rd == 0)
