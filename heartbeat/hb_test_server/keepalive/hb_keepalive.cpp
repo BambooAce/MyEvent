@@ -24,66 +24,6 @@ static void setnonblock(int lisfd)
     }
 }
 
-static size_t Write(int fd, void *buff, size_t len)
-{
-    size_t nlen = 0;
-    void *point = buff;
-    size_t n = 0;
-    while(1)
-    {
-        n = write(fd, point, len - nlen);
-        if(n == -1)
-        {
-            if(errno != EAGAIN)
-                continue;
-            else
-                return nlen;
-        }
-        else{
-            nlen += n;
-            if(nlen == len)
-            {
-                return nlen;
-            }else{
-                point += nlen;
-                continue;
-            }
-        }
-    }
-}
-
-static size_t Read(int fd, void *buff, size_t len)
-{
-    size_t nlen = 0;
-    void *point = buff;
-    size_t n = 0;
-    while(1)
-    {
-        n = read(fd, point, len - nlen);
-        if(n == -1)
-        {
-            if(errno != EAGAIN)
-                continue;
-            else
-                return nlen;
-        }
-        else{
-            if(n == 0)
-            {
-                close(fd);
-                return nlen;
-            }
-            nlen += n;
-            if(nlen == len)
-            {
-                return nlen;
-            }else{
-                point += nlen;
-                continue;
-            }
-        }
-    }
-}
 
 int initListenfd(int port)
 {

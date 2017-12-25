@@ -1,6 +1,0 @@
-    192.168.179.128.ircu-2 > 192.168.179.129.msfw-array: Flags [.], cksum 0xe879 (incorrect -> 0xd8db), seq 15, ack 16, win 114, options [nop,nop,TS val 4778016 ecr 5041318], length 0
-15:53:21.668755 IP (tos 0x0, ttl 64, id 43342, offset 0, flags [DF], proto TCP (6), length 52)
-    192.168.179.128.ircu-2 > 192.168.179.129.msfw-array: Flags [.], cksum 0xe879 (incorrect -> 0xb1bb), seq 15, ack 16, win 114, options [nop,nop,TS val 4788032 ecr 5041318], length 0
-15:53:31.684278 IP (tos 0x0, ttl 64, id 43343, offset 0, flags [DF], proto TCP (6), length 52)
-    192.168.179.128.ircu-2 > 192.168.179.129.msfw-array: Flags [R.], cksum 0xe879 (incorrect -> 0x8a96), seq 16, ack 16, win 114, options [nop,nop,TS val 4798048 ecr 5041318], length 0
-
