@@ -187,14 +187,14 @@ void loop(int lisfd)
                     if(rd)
                     {
                         printf("%s\n", buff);
-                        memset(buff, 0, SIZE);
                         write(events[i].data.fd, buff, rd);
+                        memset(buff, 0, SIZE);
                     }
                     if (rd == 0)
                     {
                         fprintf(stderr, "closed\n");
-                        //close(events[i].data.fd);
-                        //epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &(events[i]));
+                        close(events[i].data.fd);
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &(events[i]));
                     }
                     if (rd == -1)
                     {
