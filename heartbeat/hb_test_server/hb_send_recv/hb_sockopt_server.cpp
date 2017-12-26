@@ -116,9 +116,9 @@ void loop(struct BaseEvent *base,int lisfd)
                         printf("%s\n", buff);
                         if (strcmp(buff, hb) == 0)
                         {
-                            if(base->cli_map[events[i].data.fd].times){
-                                (base->cli_map[events[i].data.fd].times)--;
-                            }
+                           // if(base->cli_map[events[i].data.fd].times){
+                            //    (base->cli_map[events[i].data.fd].times)--;
+                           // }
                         }else{
                             write(events[i].data.fd, buff, rd);
                         }
